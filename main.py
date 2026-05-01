@@ -6,11 +6,18 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import random
 import string
+import json
 
-# --- 1. إعداد قاعدة بيانات Firebase ---
+# --- 1. إعداد قاعدة بيانات Firebase من الـ Environment Variables ---
 if not firebase_admin._apps:
-    cred = credentials.Certificate("key.json")
-    firebase_admin.initialize_app(cred)
+    # التعديل الجوهري: القراءة من Variable بدل ملف
+    try:
+        service_account_info = json.loads(os.environ.get('PRIVATE_KEY_JSON'))
+        cred = credentials.Certificate(service_account_info)
+        firebase_admin.initialize_app(cred)
+    except Exception as e:
+        print(f"Error loading credentials: {e}")
+
 db = firestore.client()
 
 # --- 2. إعداد البوت والخصوصية ---
@@ -21,7 +28,7 @@ ALLOWED_USERS = [5338026910, 5774155559]
 
 user_data = {}
 
-# قائمة الأسئلة المحدثة + سؤال المستشفى
+# قائمة الأسئلة
 QUESTIONS = [
     {'field': 'duration_ar', 'text': '1. أدخل مدة الإجازة (بالعربي):'},
     {'field': 'duration_en', 'text': '2. أدخل مدة الإجازة (بالإنجليزي):'},
@@ -87,12 +94,11 @@ def create_document(chat_id):
         doc = DocxTemplate("template2.docx")
         doc.render(answers)
         
-        # الأسماء الثابتة للملفات كما طلب العميل
         docx_name = "sickLeaves.docx"
         pdf_name = "sickLeaves.pdf"
         doc.save(docx_name)
         
-        # تحويل لـ PDF باستخدام LibreOffice (أفضل للسيرفر)
+        # تحويل لـ PDF (LibreOffice)
         subprocess.run([
             'libreoffice', '--headless', '--convert-to', 'pdf', 
             '--outdir', os.getcwd(), docx_name
@@ -105,7 +111,6 @@ def create_document(chat_id):
                 caption=f"✅ تم إصدار التقرير الطبي بنجاح!\n\n🔹 المستشفى: {answers.get('hospital_name', 'غير محدد')}\n🔹 رقم الهوية: {answers['id_number']}\n🔹 رمز الإجازة: {leave_id}"
             )
         
-        # تنظيف الملفات بعد الإرسال
         if os.path.exists(docx_name): os.remove(docx_name)
         if os.path.exists(pdf_name): os.remove(pdf_name)
         del user_data[chat_id]
