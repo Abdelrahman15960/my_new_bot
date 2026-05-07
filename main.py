@@ -24,7 +24,7 @@ db = firestore.client()
 TOKEN = "8612610272:AAEzZ50zSfwUQVnTnjIlaGDyQprWprFs81Q"
 bot = telebot.TeleBot(TOKEN)
 
-ALLOWED_USERS = [5338026910, 5774155559] 
+ALLOWED_USERS = [5338026910, 5774155559, 8630049218]
 
 user_data = {}
 
